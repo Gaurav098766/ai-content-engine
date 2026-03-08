@@ -71,6 +71,17 @@ def generate_article_draft(outline: str) -> str:
     response = client.responses.create(
         model="gpt-4o",
         input=[
+             {
+                "role": "developer",
+                "content": """
+                    You are an expert blog post author who excels at writing engaging educational blog posts.
+                    Avoid using marketing language or jargon.
+                    Write in a clear, concise, and informative style for an audience that comprises both technical and non-technical readers.
+                    The blog post should be structured, informative, and easy to read.
+
+                    If the user provides an existing draft, use it in conjunction with the provided outline and feedback to create an improved draft.
+                """,
+            },
             {"role": "user", "content": prompt},
         ],
     )
