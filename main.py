@@ -5,6 +5,7 @@ import os
 # Run "uv sync" to install the below packages
 from dotenv import load_dotenv
 from openai import OpenAI
+from pydantic.v1 import BaseModel, Field
 
 load_dotenv(override=True)
 
@@ -25,6 +26,28 @@ def load_file(path: str) -> str:
 
 def generate_article_draft(outline: str) -> str:
     print("Generating article draft...")
+    example_posts_path = "example_posts"
+
+    if not os.path.exists(example_posts_path):
+        raise FileNotFoundError(f"The directory '{example_posts_path}' does not exist.")
+
+    example_posts = []
+    for filename in os.listdir(example_posts_path):
+        if filename.lower().endswith(".md") or filename.lower().endswith(".mdx"):
+            with open(
+                os.path.join(example_posts_path, filename), "r", encoding="utf-8"
+            ) as file:
+                example_posts.append(file.read())
+
+    if not example_posts:
+        raise ValueError(
+            "No example blog posts found in the 'example_posts' directory."
+        )
+
+    example_posts_str = "\n\n".join(
+        f"<example-post-{i+1}>\n{post}\n</example-post-{i+1}>"
+        for i, post in enumerate(example_posts)
+    )
 
     prompt = f"""
                 Write a detailed blog post based on the following outline:
@@ -32,21 +55,41 @@ def generate_article_draft(outline: str) -> str:
                 <outline>
                 {outline}
                 </outline>
+
+                Below are some example blog posts I wrote in the past:
+                <example-posts>
+                {example_posts_str}
+                </example-posts>
+
+                Use the language, tone, style and way of writing from the example posts to generate your draft for the new blog post.
+                DON'T use the content from those example posts!
+
+                Return the blog post draft in raw markdown format so that I can directly use it in my markdown-processing pipeline.
+                Don't add any additional text or explanations, just return the raw markdown content.
             """
 
     response = client.responses.create(
         model="gpt-4o",
         input=[
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ]
+            {"role": "user", "content": prompt},
+        ],
     )
 
-    generated_text = response.output_text.strip()
+    generated_text = response.output_text
+
+    if generated_text.strip().startswith("```markdown"):
+        lines = generated_text.strip().splitlines()
+        if len(lines) > 2 and lines[-1].strip() == "```":
+            generated_text = "\n".join(lines[1:-1])
 
     return generated_text
+
+
+class Evaluation(BaseModel):
+    needs_improvement: bool = Field(
+        description="Whether the draft needs to be improved"
+    )
+    feedback: str = Field(description="Feedback on how to improve the draft")
 
 
 def generate_thumbnail(article: str) -> bytes:
