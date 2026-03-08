@@ -63,6 +63,10 @@ def generate_thumbnail(article: str) -> bytes:
     image_bytes = base64.b64decode(response.data[0].b64_json)
     return image_bytes
 
+def save_file(path: str, content: str) -> None:
+    print("Saving file:", path)
+    with open(path, 'w', encoding='utf-8') as file:
+        file.write(content)
 
 
 def main():
@@ -83,6 +87,9 @@ def main():
         f.write(thumbnail_image)
     print(f"Thumbnail saved to '{thumbnail_file}'.")
 
+    output_file = outline_file.replace(".txt", "_draft.md")
+    save_file(output_file, blog_post_draft)
+    print(f"Blog post draft saved to '{output_file}'.")
 
 if __name__ == "__main__":
     main()
