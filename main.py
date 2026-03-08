@@ -49,6 +49,21 @@ def generate_article_draft(outline: str) -> str:
     return generated_text
 
 
+def generate_thumbnail(article: str) -> bytes:
+    print("Generating thumbnail...")
+
+    response = client.images.generate(
+        model="gpt-image-1",
+        prompt=f"Generate a thumbnail for the following blog post: {article}",
+        n=1,
+        output_format="jpeg",
+        size="1536x1024"
+    )
+
+    image_bytes = base64.b64decode(response.data[0].b64_json)
+    return image_bytes
+
+
 
 def main():
     if len(sys.argv) != 2:
@@ -61,6 +76,12 @@ def main():
     blog_post_draft = generate_article_draft(outline)
     print("Generated blog post draft:")
     print(blog_post_draft)
+
+    thumbnail_image = generate_thumbnail(blog_post_draft)
+    thumbnail_file = outline_file.replace(".txt", "_thumbnail.jpeg")
+    with open(thumbnail_file, "wb") as f:
+        f.write(thumbnail_image)
+    print(f"Thumbnail saved to '{thumbnail_file}'.")
 
 
 if __name__ == "__main__":
